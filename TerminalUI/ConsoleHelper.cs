@@ -9,6 +9,7 @@ public class ConsoleHelper
         public short Y;
     }
 
+
     [StructLayout(LayoutKind.Sequential)]
     private struct SmallRect
     {
