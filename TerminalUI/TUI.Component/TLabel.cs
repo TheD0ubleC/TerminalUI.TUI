@@ -4,20 +4,14 @@
     {
         public partial class Component
         {
-            public class TButton : Component
+            public class TLabel : Component
             {
-                public Action OnClickAction { get; set; } // 按钮的点击事件 Button click event
-
-                public override void OnClick()
-                {
-                    OnClickAction?.Invoke(); // 调用绑定的事件 Invoke bound event
-                }
 
                 public override void Render(char[,] buffer)
                 {
                     if (!Visible) return; // 如果不可见则直接返回 Skip if not visible
 
-                    // 绘制按钮边框 Draw button borders
+                    // 绘制标签边框 Draw label borders
                     for (int y = 0; y < Height; y++)
                     {
                         for (int x = 0; x < Width; x++)
@@ -27,11 +21,11 @@
 
                             if (y == 0 || y == Height - 1)
                             {
-                                buffer[bufferY, bufferX] = (x == 0 || x == Width - 1) ? '+' : '-'; // 顶部或底部边框 Top/Bottom border
+                                buffer[bufferY, bufferX] = (x == 0 || x == Width - 1) ? '+' : '='; // 顶部或底部边框 Top/Bottom border
                             }
                             else if (x == 0 || x == Width - 1)
                             {
-                                buffer[bufferY, bufferX] = '|'; // 左右边框 Left/Right border
+                                buffer[bufferY, bufferX] = '*'; // 左右边框 Left/Right border
                             }
                             else
                             {
