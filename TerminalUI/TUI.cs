@@ -2,6 +2,8 @@
 using System.Text;
 using System.Threading;
 using static TerminalUI.TUI;
+using static TerminalUI.TUI.Component.TTitle;
+using static TerminalUI.TUI.Component;
 
 namespace TerminalUI
 {
@@ -13,8 +15,6 @@ namespace TerminalUI
         private bool tUIEnabled = false;
         private bool tUIRunning = true;
 
-        private string title;
-        private bool showTitle;
         private Style.TitleType titleType;
         public event Action OnDraw;
         public event Action OnMove;
@@ -24,6 +24,7 @@ namespace TerminalUI
 
         private char[,] backBuffer;
         private char[,] frontBuffer;
+        public ConsoleColor CursorColor { get; set; } = ConsoleColor.Green; // 默认指针颜色
 
         public int CursorX { get; set; }
         public int CursorY { get; set; }
@@ -42,43 +43,60 @@ namespace TerminalUI
 
         public string Title
         {
-            get => titleManager.Title;
+            get => titleComponent?.Text ?? string.Empty; // 如果没有标题组件，返回空字符串
             set
             {
-                titleManager.Title = value;
-                BuildUI(); // 更新 UI
+                if (titleComponent != null)
+                {
+                    titleComponent.Text = value; // 更新标题文本
+                    BuildUI(); // 更新 UI
+                }
             }
         }
+
 
         public Style.TitleType TitleType
         {
-            get => titleManager.TitleType;
+            get => titleComponent?.Alignment ?? Style.TitleType.None; // 如果没有标题组件，返回无标题
             set
             {
-                titleManager.TitleType = value;
-                BuildUI(); // 更新 UI
+                if (titleComponent != null)
+                {
+                    titleComponent.Alignment = value; // 更新对齐方式
+                    BuildUI(); // 更新 UI
+                }
             }
         }
 
+
         private Style.TitleManager titleManager; // Title manager 定义
+        private TTitle titleComponent;
 
         // 构造函数 Constructor
-        public TUI(TUIType terminalUIType, int Width, int Height, bool ShowTitle = true, string Title = "", Style.TitleType InitialTitleType = null, char ICursorStyle = '#', bool OpeningAnimation = false, int FPSMax = 0)
+        public TUI(TUIType terminalUIType, int Width, int Height, bool ShowTitle = true, string Title = "", Style.TitleType? InitialTitleType = null, char ICursorStyle = '#', bool OpeningAnimation = false, int FPSMax = 0)
         {
             tUIType = terminalUIType;
             tUIWidth = Width * 2;
             tUIHeight = Height;
             CursorStyle = ICursorStyle;
             showTitle = ShowTitle;
-            title = Title;
-            titleType = InitialTitleType ?? Style.TitleType.Mid;
-            titleManager = new Style.TitleManager(title, titleType, showTitle);
 
-            // 初始化 FPSMax 属性 Initialize FPSMax
+            // 初始化标题组件
+            var alignment = InitialTitleType ?? Style.TitleType.Mid;
+            titleComponent = new TTitle(Title, ShowTitle ? alignment : Style.TitleType.None)
+            {
+                X = 0,
+                Y = 2, // 标题默认在顶部
+                Width = tUIWidth,
+            };
+
+            AddComponent(titleComponent); // 将标题组件加入组件列表
+
+            // 其他初始化逻辑
             this.FPSMax = FPSMax;
-
             CursorX = tUIWidth / 2;
             CursorY = tUIHeight / 2;
+
             ErroCheck();
 
             frontBuffer = new char[tUIHeight, tUIWidth];
@@ -90,9 +108,10 @@ namespace TerminalUI
             Thread thread = new Thread(Loop) { IsBackground = false };
             thread.Start();
 
-            // 初始化上一帧时间 Initialize last frame time
+            // 初始化上一帧时间
             lastFrameTime = DateTime.Now;
         }
+
 
         private void PlayOpeningAnimation()
         {
@@ -127,7 +146,6 @@ namespace TerminalUI
                 }
 
                 Draw(); // 渲染当前动画帧 Render the current frame
-                Thread.Sleep(10); // 控制动画帧速率 Frame rate control
             }
 
             BuildUI(); // 动画完成后生成 UI
@@ -211,66 +229,40 @@ namespace TerminalUI
 
         private void BuildUI()
         {
-            // 构建 UI 边框和内容 Build UI borders and content
+            // 构建 UI 边框和内容
             for (int y = 0; y < tUIHeight; y++)
             {
                 for (int x = 0; x < tUIWidth; x++)
                 {
-                    if (y == 0) // 绘制顶部边框 Draw top border
+                    if (y == 0)
                     {
-                        backBuffer[y, x] = (x == 0 || x == tUIWidth - 1) ? '+' : '-';
+                        backBuffer[y, x] = (x == 0 || x == tUIWidth - 1) ? '+' : '-'; // 顶部边框
                     }
-                    else if (y == 2) // 绘制标题框顶部边框 Draw title box border
+                    else if (y == tUIHeight - 1)
                     {
-                        backBuffer[y, x] = (x == 0 || x == tUIWidth - 1) ? '+' : '-';
+                        backBuffer[y, x] = (x == 0 || x == tUIWidth - 1) ? '+' : '-'; // 底部边框
                     }
-                    else if (y == 1 && titleManager.ShowTitle && titleManager.TitleType != Style.TitleType.None)
+                    else if (x == 0 || x == tUIWidth - 1)
                     {
-                        backBuffer[y, x] = (x == 0 || x == tUIWidth - 1) ? '|' : ' '; // 填充标题框 Fill title box
-                    }
-                    else if (y == tUIHeight - 1) // 绘制底部边框 Draw bottom border
-                    {
-                        backBuffer[y, x] = (x == 0 || x == tUIWidth - 1) ? '+' : '-';
-                    }
-                    else if (x == 0 || x == tUIWidth - 1) // 绘制左右边框 Draw left/right border
-                    {
-                        backBuffer[y, x] = '|';
+                        backBuffer[y, x] = '|'; // 左右边框
                     }
                     else
                     {
-                        backBuffer[y, x] = ' '; // 填充内部区域 Fill inner area
+                        backBuffer[y, x] = ' '; // 填充内部区域
                     }
                 }
             }
 
-            // 渲染标题文字 Render title text
-            if (titleManager.ShowTitle && titleManager.TitleType != Style.TitleType.None)
-            {
-                int titleStartX = 1; // 默认左对齐 Default left alignment
-                if (titleManager.TitleType == Style.TitleType.Mid)
-                {
-                    titleStartX = (tUIWidth - titleManager.Title.Length) / 2;
-                }
-                else if (titleManager.TitleType == Style.TitleType.Right)
-                {
-                    titleStartX = tUIWidth - titleManager.Title.Length - 1;
-                }
-
-                for (int i = 0; i < titleManager.Title.Length && titleStartX + i < tUIWidth - 1; i++)
-                {
-                    backBuffer[1, titleStartX + i] = titleManager.Title[i];
-                }
-            }
-
-            // 渲染所有组件 Render all components
+            // 渲染所有组件（包括标题）
             foreach (var component in components)
             {
                 component.Render(backBuffer);
             }
 
-            // 渲染指针 Render cursor
+            // 渲染指针
             backBuffer[CursorY, CursorX] = CursorStyle;
         }
+
 
         private void Draw()
         {
@@ -285,7 +277,6 @@ namespace TerminalUI
                 }
             }
 
-            StringBuilder output = new StringBuilder();
             int visibleHeight = Math.Min(tUIHeight, Console.WindowHeight); // 当前窗口高度限制
             int visibleWidth = Math.Min(tUIWidth, Console.WindowWidth); // 当前窗口宽度限制
 
@@ -293,20 +284,30 @@ namespace TerminalUI
             {
                 for (int x = 0; x < visibleWidth; x++)
                 {
-                    if (frontBuffer[y, x] != backBuffer[y, x])
+                    // 优化：仅在字符内容有变化时进行更新
+                    if (frontBuffer[y, x] != backBuffer[y, x] || (y == CursorY && x == CursorX))
                     {
-                        frontBuffer[y, x] = backBuffer[y, x]; // 更新前缓冲区
+                        Console.SetCursorPosition(x, y); // 设置光标位置
+                        if (y == CursorY && x == CursorX)
+                        {
+                            Console.ForegroundColor = CursorColor; // 设置指针颜色
+                        }
+                        else
+                        {
+                            Console.ForegroundColor = ConsoleColor.Gray; // 默认颜色
+                        }
+                        Console.Write(backBuffer[y, x]); // 输出字符
+                        frontBuffer[y, x] = backBuffer[y, x]; // 同步前缓冲区
                     }
-                    output.Append(backBuffer[y, x]);
                 }
-                if (y < visibleHeight - 1) { output.AppendLine(); } // 防止多余换行 Avoid extra newline
             }
 
-            Console.SetCursorPosition(0, 0); // 设置光标位置 Set cursor position
-            Console.Write(output.ToString());
-            lastFrameTime = DateTime.Now; // 更新上一帧时间 Update last frame time
-            OnDraw?.Invoke(); // 触发绘制事件 Trigger draw event
+            Console.ResetColor(); // 重置控制台颜色
+            lastFrameTime = DateTime.Now; // 更新上一帧时间
+            OnDraw?.Invoke(); // 触发绘制事件
         }
+
+
 
         public void UpdateZIndex()
         {

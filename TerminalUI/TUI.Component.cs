@@ -1,11 +1,26 @@
-﻿namespace TerminalUI
+﻿using static TerminalUI.Style;
+
+namespace TerminalUI
 {
     public partial class TUI
     {
         // 抽象组件类定义
         // Abstract base class for components
+
+
         public abstract partial class Component
         {
+
+            public BorderStyle BorderStyle { get; set; }
+
+            // 组件默认的边框样式（可以被子类覆盖）
+            protected virtual BorderStyle? ComponentDefaultBorderStyle => null;
+
+            public Component(BorderStyle? borderStyle = null)
+            {
+                // 优先级：外部提供的 borderStyle > 组件默认样式 > 全局默认样式
+                BorderStyle = borderStyle ?? ComponentDefaultBorderStyle ?? BorderStyle.Default;
+            }
             public int X { get; set; } // 组件的 X 坐标 / Component X coordinate
             public int Y { get; set; } // 组件的 Y 坐标 / Component Y coordinate
             public int Width { get; set; } // 宽度 / Component width
@@ -99,6 +114,15 @@
                     renderedWidth += charWidth;
                 }
             }
+
+
         }
+
+        
+
+
+
+
+
     }
 }
