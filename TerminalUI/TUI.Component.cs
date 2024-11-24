@@ -7,13 +7,21 @@ namespace TerminalUI
         // 抽象组件类定义
         // Abstract base class for components
 
-
         public abstract partial class Component
         {
-
             public BorderStyle BorderStyle { get; set; }
 
-            // 组件默认的边框样式（可以被子类覆盖）
+            // 新增：控制组件是否自动调整大小 / New: Control whether the component auto-resizes
+            public bool AutoResize { get; set; } = false;
+            protected virtual void AdjustSizeToFitText()
+            {
+                int textWidth = GetTextWidth(Text); // 计算文本宽度
+                Width = Math.Max(Width, textWidth + 2); // 至少容纳文本宽度
+                Height = Math.Max(Height, 3); // 至少容纳边框和内容
+            }
+
+
+            // 组件默认的边框样式（可以被子类覆盖） / Default border style for the component
             protected virtual BorderStyle? ComponentDefaultBorderStyle => null;
 
             public Component(BorderStyle? borderStyle = null)
@@ -21,10 +29,34 @@ namespace TerminalUI
                 // 优先级：外部提供的 borderStyle > 组件默认样式 > 全局默认样式
                 BorderStyle = borderStyle ?? ComponentDefaultBorderStyle ?? BorderStyle.Default;
             }
+
             public int X { get; set; } // 组件的 X 坐标 / Component X coordinate
             public int Y { get; set; } // 组件的 Y 坐标 / Component Y coordinate
-            public int Width { get; set; } // 宽度 / Component width
-            public int Height { get; set; } // 高度 / Component height
+            private int width;
+            public int Width
+            {
+                get => width;
+                set
+                {
+                    if (!AutoResize || value > width)
+                    {
+                        width = value; // 更新宽度
+                    }
+                }
+            }
+
+            private int height;
+            public int Height
+            {
+                get => height;
+                set
+                {
+                    if (!AutoResize || value > height)
+                    {
+                        height = value; // 更新高度
+                    }
+                }
+            }
 
             private int zIndex; // Z 层级 / Z-index
             public int ZIndex
@@ -45,8 +77,10 @@ namespace TerminalUI
                 set
                 {
                     text = value;
-                    int textWidth = GetTextWidth(text); // 计算文本宽度 / Calculate text width
-                    Width = Math.Max(Width, textWidth + 2); // 更新组件宽度 / Update component width
+                    if (AutoResize)
+                    {
+                        AdjustSizeToFitText(); // 自动调整大小
+                    }
                 }
             }
 
@@ -81,14 +115,6 @@ namespace TerminalUI
                 return width;
             }
 
-            // 计算填充空格的文本 / Get padded text with spaces
-            public static string GetPaddedText(string text, int targetWidth)
-            {
-                int textWidth = GetTextWidth(text); // 计算文本宽度 / Calculate text width
-                int padding = Math.Max(0, targetWidth - textWidth); // 计算需要填充的空格数 / Calculate padding spaces
-                return text + new string(' ', padding); // 返回填充后的文本 / Return padded text
-            }
-
             // 渲染文本至缓冲区 / Render text to the buffer
             public static void RenderTextWithWidth(char[,] buffer, int startX, int startY, string text, int maxWidth)
             {
@@ -114,11 +140,10 @@ namespace TerminalUI
                     renderedWidth += charWidth;
                 }
             }
-
-
         }
 
-        
+
+
 
 
 

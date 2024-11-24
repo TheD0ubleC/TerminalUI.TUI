@@ -29,6 +29,18 @@ namespace TerminalUI
         public int CursorX { get; set; }
         public int CursorY { get; set; }
         public char CursorStyle { get; set; }
+        private Style.BorderStyle borderStyle = Style.BorderStyle.Default; // 默认全局边框样式
+
+        public Style.BorderStyle BorderStyle
+        {
+            get => borderStyle;
+            set
+            {
+                borderStyle = value ?? Style.BorderStyle.Default;
+                UpdateTitleEffectiveBorderStyle(); // 更新标题的有效边框样式
+            }
+        }
+
         private List<Component> components = new List<Component>();
 
         public int FPSMax
@@ -54,7 +66,6 @@ namespace TerminalUI
             }
         }
 
-
         public Style.TitleType TitleType
         {
             get => titleComponent?.Alignment ?? Style.TitleType.None; // 如果没有标题组件，返回无标题
@@ -68,8 +79,11 @@ namespace TerminalUI
             }
         }
 
+        public void UpdateTitleEffectiveBorderStyle()
+        {
+            titleComponent?.BuildEffectiveBorderStyle();
+        }
 
-        private Style.TitleManager titleManager; // Title manager 定义
         private TTitle titleComponent;
 
         // 构造函数 Constructor
@@ -79,38 +93,44 @@ namespace TerminalUI
             tUIWidth = Width * 2;
             tUIHeight = Height;
             CursorStyle = ICursorStyle;
-            showTitle = ShowTitle;
 
             // 初始化标题组件
             var alignment = InitialTitleType ?? Style.TitleType.Mid;
             titleComponent = new TTitle(Title, ShowTitle ? alignment : Style.TitleType.None)
             {
                 X = 0,
-                Y = 2, // 标题默认在顶部
+                Y = 1,
                 Width = tUIWidth,
             };
 
-            AddComponent(titleComponent); // 将标题组件加入组件列表
+            AddComponent(titleComponent); // 将标题组件添加到组件列表
 
             // 其他初始化逻辑
             this.FPSMax = FPSMax;
             CursorX = tUIWidth / 2;
             CursorY = tUIHeight / 2;
 
-            ErroCheck();
+            ErroCheck(); // 检查尺寸合法性
 
+            // 初始化缓冲区
             frontBuffer = new char[tUIHeight, tUIWidth];
             backBuffer = new char[tUIHeight, tUIWidth];
 
             Console.CursorVisible = false;
-            if (OpeningAnimation) { PlayOpeningAnimation(); }
 
+            // 如果启用启动动画
+            if (OpeningAnimation)
+            {
+                PlayOpeningAnimation();
+            }
+
+            // 启动主线程
             Thread thread = new Thread(Loop) { IsBackground = false };
             thread.Start();
 
-            // 初始化上一帧时间
-            lastFrameTime = DateTime.Now;
+            lastFrameTime = DateTime.Now; // 初始化上一帧时间
         }
+
 
 
         private void PlayOpeningAnimation()
@@ -229,39 +249,54 @@ namespace TerminalUI
 
         private void BuildUI()
         {
-            // 构建 UI 边框和内容
+            borderStyle ??= Style.BorderStyle.Default;
+
+            for (int y = 0; y < tUIHeight; y++)
+            {
+                for (int x = 0; x < tUIWidth; x++)
+                {
+                    backBuffer[y, x] = ' '; // 填充内部区域
+                }
+            }
+
+            foreach (var component in components.Where(c => !(c is TTitle)))
+            {
+                component.Render(backBuffer);
+            }
+
             for (int y = 0; y < tUIHeight; y++)
             {
                 for (int x = 0; x < tUIWidth; x++)
                 {
                     if (y == 0)
                     {
-                        backBuffer[y, x] = (x == 0 || x == tUIWidth - 1) ? '+' : '-'; // 顶部边框
+                        backBuffer[y, x] = (x == 0) ? borderStyle.TopLeft
+                                        : (x == tUIWidth - 1) ? borderStyle.TopRight
+                                        : borderStyle.Horizontal; // 顶部边框
                     }
                     else if (y == tUIHeight - 1)
                     {
-                        backBuffer[y, x] = (x == 0 || x == tUIWidth - 1) ? '+' : '-'; // 底部边框
+                        backBuffer[y, x] = (x == 0) ? borderStyle.BottomLeft
+                                        : (x == tUIWidth - 1) ? borderStyle.BottomRight
+                                        : borderStyle.Horizontal; // 底部边框
                     }
                     else if (x == 0 || x == tUIWidth - 1)
                     {
-                        backBuffer[y, x] = '|'; // 左右边框
-                    }
-                    else
-                    {
-                        backBuffer[y, x] = ' '; // 填充内部区域
+                        backBuffer[y, x] = borderStyle.Vertical; // 左右边框
                     }
                 }
             }
 
-            // 渲染所有组件（包括标题）
-            foreach (var component in components)
+            foreach (var title in components.OfType<TTitle>())
             {
-                component.Render(backBuffer);
+                title.BuildEffectiveBorderStyle();
+                title.Render(backBuffer);
             }
-
-            // 渲染指针
             backBuffer[CursorY, CursorX] = CursorStyle;
         }
+
+
+
 
 
         private void Draw()
@@ -311,15 +346,35 @@ namespace TerminalUI
 
         public void UpdateZIndex()
         {
-            components = components.OrderBy(c => c.ZIndex).ToList(); // 按 ZIndex 排序 Sort by ZIndex
+            components = components.OrderBy(c => c.ZIndex).ToList();
+
+            // 确保TTitle始终在最后
+            var title = components.OfType<TTitle>().FirstOrDefault();
+            if (title != null)
+            {
+                components.Remove(title);
+                components.Add(title); // 移动到列表末尾
+            }
         }
+
 
         public void AddComponent(Component component)
         {
-            component.ParentTUI = this; // 设置父组件引用 Set parent reference
+            component.ParentTUI = this; // 设置父组件引用
             components.Add(component);
-            UpdateZIndex(); // 重新排序 Update sorting
+
+            // 如果是TTitle，确保有效边框样式已被初始化
+            if (component is TTitle title)
+            {
+                title.BuildEffectiveBorderStyle();
+            }
+
+            UpdateZIndex(); // 重新排序
         }
+
+
+
+
 
         public void EnableTUI()
         {

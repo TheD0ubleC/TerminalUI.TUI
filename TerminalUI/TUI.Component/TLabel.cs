@@ -15,37 +15,63 @@ namespace TerminalUI
                 {
                     if (!Visible) return;
 
-                    for (int y = 0; y < Height; y++)
+                    // 调整大小以适应文本
+                    if (AutoResize)
                     {
-                        for (int x = 0; x < Width; x++)
-                        {
-                            int bufferX = X + x;
-                            int bufferY = Y + y;
+                        AdjustSizeToFitText();
+                    }
 
-                            if (y == 0)
+                    // 获取缓冲区大小
+                    int bufferHeight = buffer.GetLength(0);
+                    int bufferWidth = buffer.GetLength(1);
+
+                    // 计算组件有效渲染区域
+                    int startX = Math.Max(X, 0);
+                    int endX = Math.Min(X + Width, bufferWidth);
+                    int startY = Math.Max(Y, 0);
+                    int endY = Math.Min(Y + Height, bufferHeight);
+
+                    if (startX >= endX || startY >= endY) return;
+
+                    // 绘制边框和内容
+                    for (int y = startY; y < endY; y++)
+                    {
+                        for (int x = startX; x < endX; x++)
+                        {
+                            int relativeX = x - X;
+                            int relativeY = y - Y;
+
+                            if (relativeY == 0)
                             {
-                                buffer[bufferY, bufferX] = (x == 0) ? BorderStyle.TopLeft
-                                                    : (x == Width - 1) ? BorderStyle.TopRight
-                                                    : BorderStyle.Horizontal;
+                                buffer[y, x] = (relativeX == 0) ? BorderStyle.TopLeft
+                                              : (relativeX == Width - 1) ? BorderStyle.TopRight
+                                              : BorderStyle.Horizontal;
                             }
-                            else if (y == Height - 1)
+                            else if (relativeY == Height - 1)
                             {
-                                buffer[bufferY, bufferX] = (x == 0) ? BorderStyle.BottomLeft
-                                                    : (x == Width - 1) ? BorderStyle.BottomRight
-                                                    : BorderStyle.Horizontal;
+                                buffer[y, x] = (relativeX == 0) ? BorderStyle.BottomLeft
+                                              : (relativeX == Width - 1) ? BorderStyle.BottomRight
+                                              : BorderStyle.Horizontal;
                             }
                             else
                             {
-                                buffer[bufferY, bufferX] = (x == 0 || x == Width - 1) ? BorderStyle.Vertical : ' ';
+                                buffer[y, x] = (relativeX == 0 || relativeX == Width - 1) ? BorderStyle.Vertical : ' ';
                             }
                         }
                     }
 
                     // 渲染文本
-                    int textStartX = X + 1;
+                    int textStartX = Math.Max(X + 1, startX);
+                    int textEndX = Math.Min(X + Width - 1, endX);
                     int textStartY = Y + Height / 2;
-                    RenderTextWithWidth(buffer, textStartX, textStartY, Text, Width - 2);
+
+                    if (textStartY >= 0 && textStartY < bufferHeight)
+                    {
+                        string truncatedText = Text.Substring(0, Math.Min(Text.Length, textEndX - textStartX));
+                        RenderTextWithWidth(buffer, textStartX, textStartY, truncatedText, textEndX - textStartX);
+                    }
                 }
+
             }
         }
     }

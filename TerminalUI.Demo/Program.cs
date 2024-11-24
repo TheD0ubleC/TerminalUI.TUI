@@ -18,6 +18,7 @@ class Program
             FPSMax: 0               // 最大帧率 (Max FPS, 0 for unlimited)
         );
 
+
         // 创建输入框组件 (Create input box component)
         TUI.Component.TLabel input = new TUI.Component.TLabel
         {
@@ -26,6 +27,7 @@ class Program
             Text = "",
             Width = 71,
             Height = 5,
+            AutoResize = true,
         };
         tUI.AddComponent(input); // 添加到 TUI (Add to TUI)
 
