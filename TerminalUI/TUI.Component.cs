@@ -9,6 +9,18 @@ namespace TerminalUI
 
         public abstract partial class Component
         {
+
+            public ConsoleColor CornerColor { get; set; } = ConsoleColor.Gray; // 四个顶角颜色
+            public ConsoleColor BorderColor { get; set; } = ConsoleColor.Gray; // 边框颜色
+            public ConsoleColor TextColor { get; set; } = ConsoleColor.Gray;   // 文字颜色
+            protected void SetConsoleColor(ConsoleColor color)
+            {
+                Console.ForegroundColor = color;
+            }
+            protected void ResetConsoleColor()
+            {
+                Console.ResetColor();
+            }
             public BorderStyle BorderStyle { get; set; }
 
             // 新增：控制组件是否自动调整大小 / New: Control whether the component auto-resizes

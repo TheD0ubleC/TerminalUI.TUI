@@ -9,7 +9,7 @@ namespace TerminalUI
             public class TButton : Component
             {
                 // 定义 TButton 默认边框样式
-                protected override BorderStyle ComponentDefaultBorderStyle => new BorderStyle('+', '+', '+', '+', '-', '|');
+                protected override BorderStyle ComponentDefaultBorderStyle => BorderStyle.TButton;
 
                 public Action OnClickAction { get; set; }
 

@@ -14,6 +14,13 @@
             // 默认边框样式
             public static readonly BorderStyle Default = new BorderStyle();
 
+            // 预定义的样式
+            public static readonly BorderStyle Window = new BorderStyle('+', '+', '+', '+', '-', '|');
+
+            public static readonly BorderStyle TLabel = new BorderStyle('=', '=', '=', '=', '=', '*');
+
+            public static readonly BorderStyle TButton = new BorderStyle('+', '+', '+', '+', '-', '|');
+
             public BorderStyle() { }
 
             public BorderStyle(char topLeft, char topRight, char bottomLeft, char bottomRight, char horizontal, char vertical)
@@ -26,6 +33,5 @@
                 Vertical = vertical;
             }
         }
-
     }
 }

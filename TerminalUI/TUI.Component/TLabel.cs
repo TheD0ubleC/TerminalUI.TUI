@@ -8,7 +8,6 @@ namespace TerminalUI
         {
             public class TLabel : Component
             {
-                // 定义 TLabel 默认边框样式
                 protected override BorderStyle ComponentDefaultBorderStyle => new BorderStyle('=', '=', '=', '=', '=', '*');
 
                 public override void Render(char[,] buffer)
@@ -33,7 +32,6 @@ namespace TerminalUI
 
                     if (startX >= endX || startY >= endY) return;
 
-                    // 绘制边框和内容
                     for (int y = startY; y < endY; y++)
                     {
                         for (int x = startX; x < endX; x++)
@@ -43,24 +41,27 @@ namespace TerminalUI
 
                             if (relativeY == 0)
                             {
+                                // 去掉颜色设置
                                 buffer[y, x] = (relativeX == 0) ? BorderStyle.TopLeft
-                                              : (relativeX == Width - 1) ? BorderStyle.TopRight
-                                              : BorderStyle.Horizontal;
+                                                : (relativeX == Width - 1) ? BorderStyle.TopRight
+                                                : BorderStyle.Horizontal;
                             }
                             else if (relativeY == Height - 1)
                             {
+                                // 去掉颜色设置
                                 buffer[y, x] = (relativeX == 0) ? BorderStyle.BottomLeft
-                                              : (relativeX == Width - 1) ? BorderStyle.BottomRight
-                                              : BorderStyle.Horizontal;
+                                                : (relativeX == Width - 1) ? BorderStyle.BottomRight
+                                                : BorderStyle.Horizontal;
                             }
                             else
                             {
+                                // 去掉颜色设置
                                 buffer[y, x] = (relativeX == 0 || relativeX == Width - 1) ? BorderStyle.Vertical : ' ';
                             }
                         }
                     }
 
-                    // 渲染文本
+                    // 渲染文字
                     int textStartX = Math.Max(X + 1, startX);
                     int textEndX = Math.Min(X + Width - 1, endX);
                     int textStartY = Y + Height / 2;
@@ -70,6 +71,9 @@ namespace TerminalUI
                         string truncatedText = Text.Substring(0, Math.Min(Text.Length, textEndX - textStartX));
                         RenderTextWithWidth(buffer, textStartX, textStartY, truncatedText, textEndX - textStartX);
                     }
+
+                    // 重置颜色注释掉，因为已无颜色设置
+                    // ResetConsoleColor();
                 }
 
             }

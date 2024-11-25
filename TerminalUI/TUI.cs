@@ -4,6 +4,7 @@ using System.Threading;
 using static TerminalUI.TUI;
 using static TerminalUI.TUI.Component.TTitle;
 using static TerminalUI.TUI.Component;
+using static TerminalUI.Style;
 
 namespace TerminalUI
 {
@@ -29,7 +30,7 @@ namespace TerminalUI
         public int CursorX { get; set; }
         public int CursorY { get; set; }
         public char CursorStyle { get; set; }
-        private Style.BorderStyle borderStyle = Style.BorderStyle.Default; // 默认全局边框样式
+        private Style.BorderStyle borderStyle = Style.BorderStyle.Window; // 默认全局边框样式
 
         public Style.BorderStyle BorderStyle
         {
@@ -87,7 +88,7 @@ namespace TerminalUI
         private TTitle titleComponent;
 
         // 构造函数 Constructor
-        public TUI(TUIType terminalUIType, int Width, int Height, bool ShowTitle = true, string Title = "", Style.TitleType? InitialTitleType = null, char ICursorStyle = '#', bool OpeningAnimation = false, int FPSMax = 0)
+        public TUI(TUIType terminalUIType, int Width, int Height, bool ShowTitle = true, string Title = "", Style.TitleType? InitialTitleType = null, char ICursorStyle = '#', bool OpeningAnimation = false, int FPSMax = 0, BorderStyle DefaultBorderStyle = null)
         {
             tUIType = terminalUIType;
             tUIWidth = Width * 2;
@@ -102,6 +103,8 @@ namespace TerminalUI
                 Y = 1,
                 Width = tUIWidth,
             };
+
+            if (DefaultBorderStyle != null) { BorderStyle = DefaultBorderStyle; }
 
             AddComponent(titleComponent); // 将标题组件添加到组件列表
 
@@ -301,7 +304,7 @@ namespace TerminalUI
 
         private void Draw()
         {
-            // 控制帧率限制 Ensure frame rate limit
+            // 控制帧率限制
             if (fpsMax > 0)
             {
                 TimeSpan elapsed = DateTime.Now - lastFrameTime;
@@ -312,27 +315,31 @@ namespace TerminalUI
                 }
             }
 
-            int visibleHeight = Math.Min(tUIHeight, Console.WindowHeight); // 当前窗口高度限制
-            int visibleWidth = Math.Min(tUIWidth, Console.WindowWidth); // 当前窗口宽度限制
+            int bufferHeight = Math.Min(tUIHeight, Console.WindowHeight);
+            int bufferWidth = Math.Min(tUIWidth, Console.WindowWidth);
 
-            for (int y = 0; y < visibleHeight; y++)
+            for (int y = 0; y < bufferHeight; y++)
             {
-                for (int x = 0; x < visibleWidth; x++)
+                for (int x = 0; x < bufferWidth; x++)
                 {
-                    // 优化：仅在字符内容有变化时进行更新
+                    // 仅在内容发生变化时更新
                     if (frontBuffer[y, x] != backBuffer[y, x] || (y == CursorY && x == CursorX))
                     {
-                        Console.SetCursorPosition(x, y); // 设置光标位置
-                        if (y == CursorY && x == CursorX)
+                        // 检查光标是否在有效范围内
+                        if (x >= 0 && x < Console.BufferWidth && y >= 0 && y < Console.BufferHeight)
                         {
-                            Console.ForegroundColor = CursorColor; // 设置指针颜色
+                            Console.SetCursorPosition(x, y);
+                            if (y == CursorY && x == CursorX)
+                            {
+                                Console.ForegroundColor = CursorColor; // 设置指针颜色
+                            }
+                            else
+                            {
+                                Console.ForegroundColor = ConsoleColor.Gray; // 默认颜色
+                            }
+                            Console.Write(backBuffer[y, x]);
+                            frontBuffer[y, x] = backBuffer[y, x]; // 同步前缓冲区
                         }
-                        else
-                        {
-                            Console.ForegroundColor = ConsoleColor.Gray; // 默认颜色
-                        }
-                        Console.Write(backBuffer[y, x]); // 输出字符
-                        frontBuffer[y, x] = backBuffer[y, x]; // 同步前缓冲区
                     }
                 }
             }
@@ -341,6 +348,43 @@ namespace TerminalUI
             lastFrameTime = DateTime.Now; // 更新上一帧时间
             OnDraw?.Invoke(); // 触发绘制事件
         }
+
+
+
+        private ConsoleColor GetColorForPosition(int x, int y)
+        {
+            foreach (var component in components)
+            {
+                // 检查当前位置是否属于组件范围
+                if (x >= component.X && x < component.X + component.Width &&
+                    y >= component.Y && y < component.Y + component.Height)
+                {
+                    // 判断位置是边框还是文字
+                    if (x == component.X || x == component.X + component.Width - 1 ||
+                        y == component.Y || y == component.Y + component.Height - 1)
+                    {
+                        // 如果是顶角，返回顶角颜色
+                        if ((x == component.X && y == component.Y) ||
+                            (x == component.X + component.Width - 1 && y == component.Y) ||
+                            (x == component.X && y == component.Y + component.Height - 1) ||
+                            (x == component.X + component.Width - 1 && y == component.Y + component.Height - 1))
+                        {
+                            return component.CornerColor;
+                        }
+
+                        // 返回边框颜色
+                        return component.BorderColor;
+                    }
+
+                    // 返回文字颜色
+                    return component.TextColor;
+                }
+            }
+
+            return ConsoleColor.Gray; // 默认颜色
+        }
+
+
 
 
 
