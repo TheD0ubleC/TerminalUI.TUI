@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Library</OutputType>
+		<TargetFrameworks>net9.0;net8.0;net7.0;net6.0</TargetFrameworks>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable> 
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+
+		<Version>0.0.1.1</Version>
+
+		<Authors>TheD0ubleC</Authors>
+
+
+		<Description>Be Best TerminalUI</Description>
+
+		<PackageTags>TerminalUI;TUI;Console;Terminal;GUI;UI;TerminalUI.TUI</PackageTags>
+
+		<RepositoryUrl>https://github.com/TheD0ubleC/TerminalUI.TUI</RepositoryUrl>
+
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+	</PropertyGroup>
+
+</Project>

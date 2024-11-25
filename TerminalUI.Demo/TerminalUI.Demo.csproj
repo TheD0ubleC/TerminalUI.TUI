@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TerminalUI\TerminalUI.csproj" />
+    <ProjectReference Include="..\TerminalUI\TerminalUI.TUI.csproj" />
   </ItemGroup>
 
 </Project>
